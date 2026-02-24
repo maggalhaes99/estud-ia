@@ -191,9 +191,40 @@ elif opcao == "Listar anotações":
                         key=f"conexoes_{note['id']}"
                     )
 
-                    col1, col2 = st.columns(2)
+                    col1, col2, col3 = st.columns(3)
 
                     with col1:
+                        if st.button("⬅️ Cancelar", key=f"cancel_{note['id']}"):
+                            st.session_state.editando_id = None
+                            st.rerun()
+                        
+
+                    with col2:
+                        if st.button("❌ Excluir"):
+                            note_del = Annotation(
+                                note["tema"], note["subtema"], note["nivel"]
+                            )
+                            note_del.id = note["id"]
+
+                            note_del.secoes = {
+                                "o_que_e": o_que_e,
+                                "para_que_serve": para_que,
+                                "quando_usar": quando_usar,
+                                "quando_nao_usar": quando_nao_usar,
+                                "conceitos_chave": conceitos_chave.splitlines(),
+                                "exemplo_simples": exemplo_simples,
+                                "exemplo_pratico": exemplo_pratico,
+                                "erros_comuns": erros.splitlines(),
+                                "perguntas": perguntas.splitlines(),
+                                "conexoes": conexoes.splitlines()
+                            }
+                            
+
+                            note_del.deleteAnnotation()
+                            st.session_state.editando_id = None
+                            st.rerun()
+
+                    with col3:
                         if st.button("💾 Salvar", key=f"save_{note['id']}"):
                             note_obj = Annotation(
                                 note["tema"], note["subtema"], note["nivel"]
@@ -216,11 +247,6 @@ elif opcao == "Listar anotações":
                             note_obj.updateSecoes()
                             st.session_state.editando_id = None
                             st.success("Alterações salvas!")
-                            st.rerun()
-
-                    with col2:
-                        if st.button("❌ Cancelar", key=f"cancel_{note['id']}"):
-                            st.session_state.editando_id = None
                             st.rerun()
 
 # Exportar

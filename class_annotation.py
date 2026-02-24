@@ -56,3 +56,17 @@ class Annotation:
         res = cur.execute("SELECT * FROM annotation WHERE id = ?", (self.id,))
         query = res.fetchall()
         return query
+    
+    def deleteAnnotation(self):
+        con = db.get_connDB()
+        cur = con.cursor()
+
+        id = f"{self.id}"
+
+        cur.execute("DELETE FROM annotation WHERE id = ?", (
+            id,
+        )
+        )
+        con.commit()
+
+        return "Apagado"

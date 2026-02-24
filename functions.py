@@ -33,11 +33,12 @@ def search(content):
     cur.execute("""
         SELECT *
         FROM annotation
-        WHERE LOWER(tema)    LIKE ?
+        WHERE LOWER(id) LIKE ?
+           OR LOWER(tema)    LIKE ?
            OR LOWER(subtema) LIKE ?
            OR LOWER(nivel)   LIKE ?
            OR LOWER(secoes)  LIKE ?
-    """, (query, query, query, query))
+    """, (query, query, query, query, query))
 
     rows = cur.fetchall()
 
@@ -53,12 +54,3 @@ def search(content):
 
     con.close()
     return export
-
-def debug_count():
-    con = db.get_connDB()
-    cur = con.cursor()
-    cur.execute("SELECT COUNT(*) FROM annotation")
-    print(cur.fetchone())
-    con.close()
-
-debug_count()
