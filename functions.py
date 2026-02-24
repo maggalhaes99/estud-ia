@@ -23,3 +23,42 @@ def getAnnotation():
 
     con.close()
     return export
+
+def search(content):
+    con = db.get_connDB()
+    cur = con.cursor()
+
+    query = f"%{content.lower()}%"
+
+    cur.execute("""
+        SELECT *
+        FROM annotation
+        WHERE LOWER(tema)    LIKE ?
+           OR LOWER(subtema) LIKE ?
+           OR LOWER(nivel)   LIKE ?
+           OR LOWER(secoes)  LIKE ?
+    """, (query, query, query, query))
+
+    rows = cur.fetchall()
+
+    export = []
+    for row in rows:
+        export.append({
+            "id": row["id"],
+            "tema": row["tema"],
+            "subtema": row["subtema"],
+            "nivel": row["nivel"],
+            "secoes": json.loads(row["secoes"])
+        })
+
+    con.close()
+    return export
+
+def debug_count():
+    con = db.get_connDB()
+    cur = con.cursor()
+    cur.execute("SELECT COUNT(*) FROM annotation")
+    print(cur.fetchone())
+    con.close()
+
+debug_count()

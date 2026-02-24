@@ -1,7 +1,7 @@
 import streamlit as st
 import json
 from class_annotation import Annotation
-from functions import getAnnotation
+from functions import getAnnotation, search
 
 st.set_page_config(page_title="Anotações de Estudo", layout="wide")
 
@@ -78,7 +78,26 @@ if opcao == "Criar anotação":
 elif opcao == "Listar anotações":
     st.header("📄 Lista de anotações")
 
-    data = getAnnotation()
+    # Garante estado inicial
+    if "search_text" not in st.session_state:
+        st.session_state.search_text = ""
+
+    def atualizar_busca():
+        # Sempre sai do modo edição ao buscar
+        st.session_state.editando_id = None
+
+    searchText = st.text_input(
+        "Busque por uma anotação",
+        key="search_text",
+        on_change=atualizar_busca
+    )
+
+    # Sempre usa o valor do session_state
+    if st.session_state.search_text.strip():
+        data = search(st.session_state.search_text.strip())
+    else:
+        data = getAnnotation()
+
 
     if not data:
         st.info("Nenhuma anotação cadastrada.")
