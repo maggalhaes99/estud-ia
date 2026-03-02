@@ -1,11 +1,16 @@
 import streamlit as st
 import json
+
 from app.services.annotation_service import AnnotationService
 from app.models.annotation import Annotation
+
+from app.services.template_annotation_service import TemplateAnnotationService
+from app.models.template import TemplateAnnotation
 
 
 def run_app():
     service = AnnotationService()
+    template_service = TemplateAnnotationService()
 
     st.set_page_config(page_title="Anotações de Estudo", layout="wide")
 
@@ -18,6 +23,15 @@ def run_app():
     if "salvo_com_sucesso" not in st.session_state:
         st.session_state.salvo_com_sucesso = False
 
+    if "modo_criacao_template" not in st.session_state:
+        st.session_state.modo_criacao_template = False
+
+    if "search_text" not in st.session_state:
+        st.session_state.search_text = ""
+
+    # =====================
+    # Título
+    # =====================
     st.title("📚 Estud.IA")
     st.write("Ferramenta de Anotações de estudos e Preparação de Mapeamento Mental para IA")
 
@@ -27,7 +41,7 @@ def run_app():
     st.sidebar.title("Menu")
     opcao = st.sidebar.radio(
         "",
-        options=["Criar anotação", "Listar anotações", "Exportar"]
+        options=["Criar anotação", "Listar anotações", "Templates", "Exportar"]
     )
 
     # =====================
@@ -59,10 +73,8 @@ def run_app():
         perguntas = st.text_area("Perguntas (uma por linha)")
         conexoes = st.text_area("Conexões com outros temas (uma por linha)")
 
-        if st.button("Salvar Anotação"):
-            if not tema or not subtema:
-                st.warning("Tema e Subtema são obrigatórios.")
-            else:
+        if st.button("💾 Salvar Anotação"):
+            try:
                 note = Annotation(
                     tema=tema,
                     subtema=subtema,
@@ -85,14 +97,14 @@ def run_app():
                 st.session_state.salvo_com_sucesso = True
                 st.rerun()
 
+            except ValueError as e:
+                st.warning(str(e))
+
     # =====================
-    # LISTAR / EDITAR
+    # LISTAR / EDITAR ANOTAÇÕES
     # =====================
     elif opcao == "Listar anotações":
         st.header("📄 Lista de anotações")
-
-        if "search_text" not in st.session_state:
-            st.session_state.search_text = ""
 
         def atualizar_busca():
             st.session_state.editando_id = None
@@ -113,14 +125,9 @@ def run_app():
         else:
             for note in data:
                 with st.expander(f"{note.tema} - {note.subtema} ({note.nivel})"):
-
                     secoes = note.secoes
 
-                    # =====================
-                    # VISUALIZAÇÃO
-                    # =====================
                     if st.session_state.editando_id != note.id:
-
                         st.markdown("### 📘 Conteúdo")
 
                         def render_lista(titulo, lista):
@@ -142,13 +149,6 @@ def run_app():
                         st.write(secoes.get("quando_nao_usar", ""))
 
                         render_lista("Conceitos-chave", secoes.get("conceitos_chave", []))
-
-                        st.markdown("**Exemplo simples**")
-                        st.write(secoes.get("exemplo_simples", ""))
-
-                        st.markdown("**Exemplo prático**")
-                        st.write(secoes.get("exemplo_pratico", ""))
-
                         render_lista("Erros comuns", secoes.get("erros_comuns", []))
                         render_lista("Perguntas", secoes.get("perguntas", []))
                         render_lista("Conexões", secoes.get("conexoes", []))
@@ -157,9 +157,6 @@ def run_app():
                             st.session_state.editando_id = note.id
                             st.rerun()
 
-                    # =====================
-                    # EDIÇÃO
-                    # =====================
                     else:
                         o_que_e = st.text_area("O que é", secoes.get("o_que_e", ""), key=f"oque_{note.id}")
                         para_que = st.text_area("Para que serve", secoes.get("para_que_serve", ""), key=f"para_{note.id}")
@@ -171,9 +168,6 @@ def run_app():
                             "\n".join(secoes.get("conceitos_chave", [])),
                             key=f"conceitos_{note.id}"
                         )
-
-                        exemplo_simples = st.text_area("Exemplo simples", secoes.get("exemplo_simples", ""), key=f"exsimples_{note.id}")
-                        exemplo_pratico = st.text_area("Exemplo prático", secoes.get("exemplo_pratico", ""), key=f"expratico_{note.id}")
 
                         erros = st.text_area(
                             "Erros comuns (um por linha)",
@@ -188,7 +182,7 @@ def run_app():
                         )
 
                         conexoes = st.text_area(
-                            "Conexões com outros temas (uma por linha)",
+                            "Conexões (uma por linha)",
                             "\n".join(secoes.get("conexoes", [])),
                             key=f"conexoes_{note.id}"
                         )
@@ -214,8 +208,6 @@ def run_app():
                                     "quando_usar": quando_usar,
                                     "quando_nao_usar": quando_nao_usar,
                                     "conceitos_chave": conceitos_chave.splitlines(),
-                                    "exemplo_simples": exemplo_simples,
-                                    "exemplo_pratico": exemplo_pratico,
                                     "erros_comuns": erros.splitlines(),
                                     "perguntas": perguntas.splitlines(),
                                     "conexoes": conexoes.splitlines()
@@ -227,6 +219,37 @@ def run_app():
                                 st.rerun()
 
     # =====================
+    # TEMPLATES
+    # =====================
+    elif opcao == "Templates":
+        st.header("📋 Templates")
+
+        if st.button("➕ Novo Template"):
+            st.session_state.modo_criacao_template = True
+
+        if st.session_state.modo_criacao_template:
+            with st.form("form_criar_template"):
+                nome = st.text_input("Nome do template")
+                perguntas = st.text_area("Perguntas (uma por linha)")
+
+                submitted = st.form_submit_button("💾 Salvar Template")
+
+                if submitted:
+                    try:
+                        template = TemplateAnnotation(
+                            nome=nome,
+                            perguntas=perguntas.splitlines()
+                        )
+
+                        template_service.create(template)
+                        st.session_state.modo_criacao_template = False
+                        st.success("Template criado com sucesso!")
+                        st.rerun()
+
+                    except ValueError as e:
+                        st.warning(str(e))
+
+    # =====================
     # EXPORTAR
     # =====================
     elif opcao == "Exportar":
@@ -234,7 +257,6 @@ def run_app():
 
         data = service.list_all()
 
-        # ---------- JSON ----------
         json_data = json.dumps(
             [vars(note) for note in data],
             indent=2,
@@ -251,7 +273,6 @@ def run_app():
                 "application/json"
             )
 
-        # ---------- PDF ----------
         from app.services.export_service import export_annotations_pdf
 
         with col2:

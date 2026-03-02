@@ -17,5 +17,12 @@ def init_db():
                 subtema TEXT NOT NULL,
                 nivel TEXT NOT NULL,
                 secoes TEXT
-            )
+            );
         """)
+
+        cur.execute("""        
+            CREATE TABLE IF NOT EXISTS template_annotation (
+                id TEXT PRIMARY KEY,
+                nome TEXT NOT NULL,
+                perguntas TEXT
+            );""")
